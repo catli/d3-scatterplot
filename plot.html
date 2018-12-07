@@ -34,6 +34,11 @@ body {
 .dot{
     stroke: #000;
 }
+.line{
+    fill: #000;
+    stroke: #000;
+    stroke-width: 2;
+}
 .axis path,
 .axis line {
   fill: none;
@@ -386,6 +391,19 @@ var yValue = function(d) { return d["y"];}, // data -> value
     yMap = function(d) { return yScale(yValue(d));}, // data -> display
     yAxis = d3.svg.axis().scale(yScale).orient("left");
 
+// setup x2 to draw edges
+var xValue2 = function(d) { return d.x2;}, // data -> value
+    xScale = d3.scale.linear().range([0, width]), // value -> display
+    xMap2 = function(d) {return xScale(xValue2(d));}, // data -> display
+    xAxis = d3.svg.axis().scale(xScale).orient("bottom");
+
+// setup y2 to draw edges
+var yValue2 = function(d) { return d.y2;}, // data -> value
+    yScale = d3.scale.linear().range([height, 0]), // value -> display
+    yMap2 = function(d) {return yScale(yValue2(d));}, // data -> display
+    yAxis = d3.svg.axis().scale(yScale).orient("left");
+
+
 // add the tooltip area to the webpage
 var tooltip = d3.select("body").append("div")
         .attr("class", "tooltip")
@@ -549,7 +567,7 @@ var transparent_column = "Select", feature_column = "", shaping_column = "Select
 console.log('Loading main data')
 // getting header from csv file to make drowdown menus
 d3.tsv(dataset, function(data) {
-    console.log(data[0]);
+    console.log('get header')
     temp = Object.keys(data[0]);
     // remove x and y
     temp.splice(temp.indexOf('x'), 1);
@@ -567,6 +585,7 @@ d3.tsv(dataset, function(data) {
             categories_copy_color.push(temp[i]);
         }
         columns.push(temp[i]);
+        console.log(columns)
     }
     // check whether the coloring column is provided in the url or not
     // ?? is this necessary? color_column is already defined with the same procedure outside the function
@@ -1207,6 +1226,8 @@ function highlighting(val_search, val_transp, val_opacityMatch, val_opacityNoMat
         /*** BEGIN drawing dots ***/
 
         // shaping of symbols according to the shaping column
+        console.log('shaping column');
+        console.log(shaping_column);
         if (shaping_column !== "Select" ) {
           // color_column = shaping_column;
           var points = svg.selectAll(".dot")
@@ -1280,6 +1301,58 @@ function highlighting(val_search, val_transp, val_opacityMatch, val_opacityNoMat
                           .attr("x", (d3.event.pageX-50))
                           .attr("y", (d3.event.pageY-35));
               });
+
+          // draw edges
+          var edge = svg.selectAll(".line")
+              .data(data)
+              .enter();
+
+          edge.append("line")
+              .filter(function(d){ return (searchFunc(d) == 1); })
+              .attr("class", "line")
+              .attr("r", 7)
+              .style("stroke-width", 2)
+              .attr("x1", xMap) //xMap
+              .attr("y1", yMap) //yMap
+              .attr("x2",  xMap2 )//xMap2
+              .attr("y2", yMap2) //yMap2
+              .style("stroke", function(d) { return document.getElementById('cbox2').checked ? color(cValue2(d)) : color(cValue(d));})
+              .style("opacity",function(d) { return transpar(d);})
+              // jann: here is the mouseover display
+              .on("mouseover", function(d) {
+                  tooltip.transition()
+                         .duration(200)
+                         .style("opacity", 1);
+                  tooltip.html(
+                          print_array(category_search_data, d))
+                            .style("left", 60 + "px")
+                            .style("top", 30 + "px");
+              })
+
+              .on("mouseout", function(d) {
+                  tooltip.transition()
+                         .duration(500)
+                         .style("opacity", 0);
+              })
+
+              .on("click", function(d) {
+                  if (!([d3.event.pageX, d3.event.pageY] in marked)){
+                      marked[[d3.event.pageX, d3.event.pageY]] = true;
+                      marked[[d3.event.pageX-1, d3.event.pageY-1]] = true;
+                      marked[[d3.event.pageX+1, d3.event.pageY+1]] = true;
+                      marked[[d3.event.pageX-1, d3.event.pageY+1]] = true;
+                      marked[[d3.event.pageX+1, d3.event.pageY-1]] = true;
+                      marked[[d3.event.pageX+2, d3.event.pageY-2]] = true;
+                      marked[[d3.event.pageX-2, d3.event.pageY-2]] = true;
+                      marked[[d3.event.pageX-2, d3.event.pageY+2]] = true;
+                      marked[[d3.event.pageX+2, d3.event.pageY+2]] = true;
+                      svg.append("text")
+                        .text(d[feature_column])
+                        .attr("x", (d3.event.pageX-50))
+                        .attr("y", (d3.event.pageY-35));
+                  }
+              }) ;
+              // end drawing path for learning
         } else {
           // draw dots
           marked = {}
@@ -1383,6 +1456,58 @@ function highlighting(val_search, val_transp, val_opacityMatch, val_opacityNoMat
                       .attr("y", (d3.event.pageY-35));
                 }
             });
+
+          // draw edges
+          var edge = svg.selectAll(".line")
+              .data(data)
+              .enter();
+
+          edge.append("line")
+            .filter(function(d){ return (searchFunc(d) == 1); })
+            .attr("class", "line")
+            .attr("r", 7)
+            .style("stroke-width", 2)
+            .attr("x1", xMap) //xMap
+            .attr("y1", yMap) //yMap
+            .attr("x2",  xMap2 )//xMap2
+            .attr("y2", yMap2) //yMap2
+            .style("stroke", function(d) { return document.getElementById('cbox2').checked ? color(cValue2(d)) : color(cValue(d));})
+            .style("opacity",function(d) { return transpar(d);})
+            // jann: here is the mouseover display
+            .on("mouseover", function(d) {
+                tooltip.transition()
+                       .duration(200)
+                       .style("opacity", 1);
+                tooltip.html(
+                        print_array(category_search_data, d))
+                          .style("left", 60 + "px")
+                          .style("top", 30 + "px");
+            })
+
+            .on("mouseout", function(d) {
+                tooltip.transition()
+                       .duration(500)
+                       .style("opacity", 0);
+            })
+
+            .on("click", function(d) {
+                if (!([d3.event.pageX, d3.event.pageY] in marked)){
+                    marked[[d3.event.pageX, d3.event.pageY]] = true;
+                    marked[[d3.event.pageX-1, d3.event.pageY-1]] = true;
+                    marked[[d3.event.pageX+1, d3.event.pageY+1]] = true;
+                    marked[[d3.event.pageX-1, d3.event.pageY+1]] = true;
+                    marked[[d3.event.pageX+1, d3.event.pageY-1]] = true;
+                    marked[[d3.event.pageX+2, d3.event.pageY-2]] = true;
+                    marked[[d3.event.pageX-2, d3.event.pageY-2]] = true;
+                    marked[[d3.event.pageX-2, d3.event.pageY+2]] = true;
+                    marked[[d3.event.pageX+2, d3.event.pageY+2]] = true;
+                    svg.append("text")
+                      .text(d[feature_column])
+                      .attr("x", (d3.event.pageX-50))
+                      .attr("y", (d3.event.pageY-35));
+                }
+            }) ;
+
         }
         /*** END drawing dots ***/
 
